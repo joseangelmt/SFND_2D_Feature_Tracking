@@ -25,7 +25,7 @@ int main(int argc, const char *argv[])
     /* INIT VARIABLES AND DATA STRUCTURES */
 
     // data location
-    string dataPath = "../";
+    string dataPath = "../../../";
 
     // camera
     string imgBasePath = dataPath + "images/";
@@ -58,6 +58,8 @@ int main(int argc, const char *argv[])
 
         //// STUDENT ASSIGNMENT
         //// TASK MP.1 -> replace the following code with ring buffer of size dataBufferSize
+		if (dataBuffer.size() == dataBufferSize)
+			dataBuffer.erase(dataBuffer.begin());
 
         // push image into data frame buffer
         DataFrame frame;
