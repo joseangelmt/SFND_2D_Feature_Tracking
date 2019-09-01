@@ -63,6 +63,17 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 
 		extractor = cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
 	}
+	if (descriptorType.compare("FREAK") == 0)
+	{
+		// Parameters from Learning OpenCV 3.0
+		auto orientationNormalized = true;
+		auto scaleNormalized = true;
+		auto patternScale = 22.0f;
+		auto nOctaves = 4;
+		std::vector<int>  userSelectedPairs;
+
+		extractor = cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
+	}
 	else
     {
 	}
