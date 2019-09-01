@@ -216,6 +216,18 @@ void detectKeypointsAkaze(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
 	detector->detect(img, keypoints);
 }
 
+void detectKeypointsSift(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
+{
+	auto nFeatures = 0;
+	auto nOctaveLayers = 3;
+	auto contrastThreshold = 0.04;
+	auto edgeThreshold = 10;
+	auto sigma = 1.6;
+	auto detector = cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+
+	detector->detect(img, keypoints);
+}
+
 void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
 {
 	double t = (double)cv::getTickCount();
@@ -235,6 +247,10 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 	else if (detectorType.compare("AKAZE") == 0)
 	{
 		detectKeypointsAkaze(keypoints, img);
+	}
+	else if (detectorType.compare("SIFT") == 0)
+	{
+		detectKeypointsSift(keypoints, img);
 	}
 	else {
 		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
