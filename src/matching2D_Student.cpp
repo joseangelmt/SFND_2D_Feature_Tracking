@@ -78,8 +78,18 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 	{
 		extractor = cv::AKAZE::create(); 
 	}
+	if (descriptorType.compare("SIFT") == 0)
+	{
+		auto nFeatures = 0;
+		auto nOctaveLayers = 3;
+		auto contrastThreshold = 0.04;
+		auto edgeThreshold = 10;
+		auto sigma = 1.6;
+		extractor = cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+	}
 	else
     {
+		cerr << "NOT IMPLEMENTED DETECTOR " << descriptorType << endl;
 	}
 
     // perform feature description
