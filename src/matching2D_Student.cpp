@@ -53,6 +53,15 @@ cv::Ptr<cv::Feature2D> CreateSift()
 	return cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
 }
 
+cv::Ptr<cv::Feature2D> CreateBrief()
+{
+	// Parameters from Learning OpenCV 3.0
+	auto bytes = 32;
+	auto useOrientation = false;
+
+	return cv::xfeatures2d::BriefDescriptorExtractor::create(bytes, useOrientation);
+}
+
 cv::Ptr<cv::Feature2D> CreateFreak()
 {
 	// Parameters from Learning OpenCV 3.0
@@ -63,15 +72,6 @@ cv::Ptr<cv::Feature2D> CreateFreak()
 	std::vector<int>  userSelectedPairs;
 
 	return cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
-}
-
-cv::Ptr<cv::Feature2D> CreateBrief()
-{
-	// Parameters from Learning OpenCV 3.0
-	auto bytes = 32;
-	auto useOrientation = false;
-
-	return cv::xfeatures2d::BriefDescriptorExtractor::create(bytes, useOrientation);
 }
 
 // Find best matches for keypoints in two camera images based on several matching methods

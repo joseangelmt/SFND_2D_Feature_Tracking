@@ -18,6 +18,8 @@
 
 using namespace std;
 
+#define PERFORMANCE_EVALUATION_1
+
 /* MAIN PROGRAM */
 int main(int argc, const char *argv[])
 {
@@ -41,6 +43,10 @@ int main(int argc, const char *argv[])
     bool bVis = false;            // visualize results
 
     /* MAIN LOOP OVER ALL IMAGES */
+
+#ifdef PERFORMANCE_EVALUATION_1
+	size_t totalKeypoints = 0;
+#endif
 
     for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
     {
@@ -73,7 +79,7 @@ int main(int argc, const char *argv[])
 
         // extract 2D keypoints from current image
         vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-        string detectorType = "FAST";
+        string detectorType = "AKAZE";
 
         //// STUDENT ASSIGNMENT
         //// TASK MP.2 -> add the following keypoint detectors in file matching2D.cpp and enable string-based selection based on detectorType
@@ -101,12 +107,17 @@ int main(int argc, const char *argv[])
         cv::Rect vehicleRect(535, 180, 180, 150);
         if (bFocusOnVehicle)
         {
-			vector<cv::KeyPoint> keypointsVehicle;
+			vector<cv::KeyPoint> keypointsInVehicle;
 			for (const auto& keyPoint : keypoints)
 				if (vehicleRect.contains(keyPoint.pt))
-					keypointsVehicle.push_back(keyPoint);
+					keypointsInVehicle.push_back(keyPoint);
 
-			keypoints = keypointsVehicle;
+			keypoints = keypointsInVehicle;
+
+#ifdef PERFORMANCE_EVALUATION_1
+			cout << keypoints.size() << " keypoints in the preceding vehicle" << endl;
+			totalKeypoints += keypoints.size();
+#endif
         }
 
         //// EOF STUDENT ASSIGNMENT
@@ -137,7 +148,9 @@ int main(int argc, const char *argv[])
 
         cv::Mat descriptors;
         string descriptorType = "BRIEF"; // BRIEF, ORB, FREAK, AKAZE, SIFT
+#ifndef PERFORMANCE_EVALUATION_1
         descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
+#endif
         //// EOF STUDENT ASSIGNMENT
 
         // push descriptors for current frame to end of data buffer
@@ -179,7 +192,13 @@ int main(int argc, const char *argv[])
                                 (dataBuffer.end() - 1)->cameraImg, (dataBuffer.end() - 1)->keypoints,
                                 matches, matchImg,
                                 cv::Scalar::all(-1), cv::Scalar::all(-1),
-                                vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+                                vector<char>(), 
+#ifdef PERFORMANCE_EVALUATION_1
+								cv::DrawMatchesFlags::DEFAULT
+#else
+								cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS
+#endif
+				);
 
                 string windowName = "Matching keypoints between two camera images";
                 cv::namedWindow(windowName, 7);
@@ -191,6 +210,10 @@ int main(int argc, const char *argv[])
         }
 
     } // eof loop over all images
+
+#ifdef PERFORMANCE_EVALUATION_1
+	cout << "Total number of keypoints: " << totalKeypoints << endl;
+#endif
 
     return 0;
 }
