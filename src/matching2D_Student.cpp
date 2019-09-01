@@ -180,6 +180,17 @@ void detectKeypointsFast(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
 	detector->detect(img, keypoints);
 }
 
+void detectKeypointsBrisk(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
+{
+	// Parameters from Learning OpenCV 3.0
+	auto thresshold = 30;
+	auto octaves = 3;
+	auto patternScale = 1.0f;
+
+	auto detector = cv::BRISK::create(thresshold, octaves, patternScale);
+	detector->detect(img, keypoints);
+}
+
 void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
 {
 	double t = (double)cv::getTickCount();
@@ -187,6 +198,10 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 	if (detectorType.compare("FAST") == 0)
 	{
 		detectKeypointsFast(keypoints, img);
+	}
+	else if (detectorType.compare("BRISK") == 0)
+	{
+		detectKeypointsBrisk(keypoints, img);
 	}
 	else {
 		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
