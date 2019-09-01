@@ -3,6 +3,74 @@
 
 using namespace std;
 
+template<typename T>
+cv::Ptr<T> CreateFast()
+{
+	auto thresshold = 30;
+	auto nonmaxSupression = true;
+	auto type = cv::FastFeatureDetector::TYPE_9_16;
+
+	return cv::FastFeatureDetector::create(thresshold, nonmaxSupression, type);
+}
+
+template<typename T>
+cv::Ptr<T> CreateBrisk()
+{
+	// Parameters from Learning OpenCV 3.0
+	auto thresshold = 30;
+	auto octaves = 3;
+	auto patternScale = 1.0f;
+
+	return cv::BRISK::create(thresshold, octaves, patternScale);
+}
+
+template<typename T>
+cv::Ptr<T> CreateOrb()
+{
+	// Parameters from Learning OpenCV 3.0
+	auto nFeatures = 500;
+	auto scaleFactor = 1.2f;
+	auto nLevels = 8;
+	auto edgeThresshold = 31;
+	auto firstEdge = 0; // Always 20
+	auto kta_k = 2;
+	auto scoreType = cv::ORB::FAST_SCORE;
+	auto pathSize = 31;
+	auto fastThresshold = 20;
+
+	return cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
+}
+
+template<typename T>
+cv::Ptr<T> CreateAkaze()
+{
+	return cv::AKAZE::create();
+}
+
+template<typename T>
+cv::Ptr<T> CreateSift()
+{
+	auto nFeatures = 0;
+	auto nOctaveLayers = 3;
+	auto contrastThreshold = 0.04;
+	auto edgeThreshold = 10;
+	auto sigma = 1.6;
+	return cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+}
+
+template<typename T>
+cv::Ptr<T> CreateFreak()
+{
+	// Parameters from Learning OpenCV 3.0
+	auto orientationNormalized = true;
+	auto scaleNormalized = true;
+	auto patternScale = 22.0f;
+	auto nOctaves = 4;
+	std::vector<int>  userSelectedPairs;
+
+	return cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
+}
+
 // Find best matches for keypoints in two camera images based on several matching methods
 void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource, cv::Mat &descRef,
                       std::vector<cv::DMatch> &matches, std::string descriptorType, std::string matcherType, std::string selectorType)
@@ -41,55 +109,28 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
     cv::Ptr<cv::DescriptorExtractor> extractor;
     if (descriptorType.compare("BRISK") == 0)
     {
-
-        int threshold = 30;        // FAST/AGAST detection threshold score.
-        int octaves = 3;           // detection octaves (use 0 to do single scale)
-        float patternScale = 1.0f; // apply this scale to the pattern used for sampling the neighbourhood of a keypoint.
-
-        extractor = cv::BRISK::create(threshold, octaves, patternScale);
+		extractor = CreateBrisk<cv::DescriptorExtractor>();
     }
 	if (descriptorType.compare("ORB") == 0)
 	{
-		// Parameters from Learning OpenCV 3.0
-		auto nFeatures = 500;
-		auto scaleFactor = 1.2f;
-		auto nLevels = 8;
-		auto edgeThresshold = 31;
-		auto firstEdge = 0; // Always 20
-		auto kta_k = 2;
-		auto scoreType = cv::ORB::FAST_SCORE;
-		auto pathSize = 31;
-		auto fastThresshold = 20;
-
-		extractor = cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
+		extractor = CreateOrb<cv::DescriptorExtractor>();
 	}
 	if (descriptorType.compare("FREAK") == 0)
 	{
-		// Parameters from Learning OpenCV 3.0
-		auto orientationNormalized = true;
-		auto scaleNormalized = true;
-		auto patternScale = 22.0f;
-		auto nOctaves = 4;
-		std::vector<int>  userSelectedPairs;
-
-		extractor = cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
+		extractor = CreateFreak<cv::DescriptorExtractor>();
 	}
 	if (descriptorType.compare("AKAZE") == 0)
 	{
-		extractor = cv::AKAZE::create(); 
+		extractor = CreateAkaze<cv::DescriptorExtractor>();
 	}
 	if (descriptorType.compare("SIFT") == 0)
 	{
-		auto nFeatures = 0;
-		auto nOctaveLayers = 3;
-		auto contrastThreshold = 0.04;
-		auto edgeThreshold = 10;
-		auto sigma = 1.6;
-		extractor = cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
+		extractor = CreateSift<cv::DescriptorExtractor>();
 	}
 	else
     {
 		cerr << "NOT IMPLEMENTED DETECTOR " << descriptorType << endl;
+		return;
 	}
 
     // perform feature description
@@ -106,7 +147,7 @@ void detKeypointsShiTomasi(vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool b
     int blockSize = 4;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
     double maxOverlap = 0.0; // max. permissible overlap between two features in %
     double minDistance = (1.0 - maxOverlap) * blockSize;
-    int maxCorners = img.rows * img.cols / max(1.0, minDistance); // max. num. of keypoints
+    int maxCorners = static_cast<int>(img.rows * img.cols / max(1.0, minDistance)); // max. num. of keypoints
 
     double qualityLevel = 0.01; // minimal accepted quality of image corners
     double k = 0.04;
@@ -122,7 +163,7 @@ void detKeypointsShiTomasi(vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool b
 
         cv::KeyPoint newKeyPoint;
         newKeyPoint.pt = cv::Point2f((*it).x, (*it).y);
-        newKeyPoint.size = blockSize;
+        newKeyPoint.size = static_cast<float>(blockSize);
         keypoints.push_back(newKeyPoint);
     }
     t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
@@ -146,7 +187,7 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 	int blockSize = 4;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
 	double maxOverlap = 0.0; // max. permissible overlap between two features in %
 	double minDistance = (1.0 - maxOverlap) * blockSize;
-	int maxCorners = img.rows * img.cols / max(1.0, minDistance); // max. num. of keypoints
+	int maxCorners = static_cast<int>(img.rows * img.cols / max(1.0, minDistance)); // max. num. of keypoints
 
 	int apertureSize = 3; // aperture parameter for Sobel operator (must be odd)
 	int minResponse = 100; // minimum value for a corner in the 8bit scaled response matrix
@@ -171,9 +212,9 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 				continue;
 
 			cv::KeyPoint newKeyPoint;
-			newKeyPoint.pt = cv::Point2f(i, j);
-			newKeyPoint.size = 2 * apertureSize;
-			newKeyPoint.response = response;
+			newKeyPoint.pt = cv::Point2f(static_cast<float>(i), static_cast<float>(j));
+			newKeyPoint.size = static_cast<float>(2 * apertureSize);
+			newKeyPoint.response = static_cast<float>(response);
 
 			// Implementamos non-maximun supression (NMS) en un vecindario local alrededor del keypoint
 			auto overlap = false;
@@ -208,91 +249,40 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 	}
 }
 
-void detectKeypointsFast(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
-{
-	auto thresshold = 30;
-	auto nonmaxSupression = true;
-	auto type = cv::FastFeatureDetector::TYPE_9_16;
 
-	auto detector = cv::FastFeatureDetector::create(thresshold, nonmaxSupression, type);
-	detector->detect(img, keypoints);
-}
-
-void detectKeypointsBrisk(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
-{
-	// Parameters from Learning OpenCV 3.0
-	auto thresshold = 30;
-	auto octaves = 3;
-	auto patternScale = 1.0f;
-
-	auto detector = cv::BRISK::create(thresshold, octaves, patternScale);
-	detector->detect(img, keypoints);
-}
-
-void detectKeypointsOrb(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
-{
-	// Parameters from Learning OpenCV 3.0
-	auto nFeatures = 500;
-	auto scaleFactor = 1.2f;
-	auto nLevels = 8;
-	auto edgeThresshold = 31;
-	auto firstEdge = 0; // Always 20
-	auto kta_k = 2;
-	auto scoreType = cv::ORB::FAST_SCORE;
-	auto pathSize = 31;
-	auto fastThresshold = 20;
-
-	auto detector = cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
-
-	detector->detect(img, keypoints);
-}
-
-void detectKeypointsAkaze(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
-{
-	auto detector = cv::AKAZE::create();
-
-	detector->detect(img, keypoints);
-}
-
-void detectKeypointsSift(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
-{
-	auto nFeatures = 0;
-	auto nOctaveLayers = 3;
-	auto contrastThreshold = 0.04;
-	auto edgeThreshold = 10;
-	auto sigma = 1.6;
-	auto detector = cv::xfeatures2d::SIFT::create(nFeatures, nOctaveLayers, contrastThreshold, edgeThreshold, sigma);
-
-	detector->detect(img, keypoints);
-}
 
 void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
 {
-	double t = (double)cv::getTickCount();
+	cv::Ptr<cv::FeatureDetector> detector;
 
 	if (detectorType.compare("FAST") == 0)
 	{
-		detectKeypointsFast(keypoints, img);
+		detector = CreateFast<cv::FeatureDetector>();
 	}
 	else if (detectorType.compare("BRISK") == 0)
 	{
-		detectKeypointsBrisk(keypoints, img);
+		detector = CreateBrisk<cv::FeatureDetector>();
 	}
 	else if (detectorType.compare("ORB") == 0)
 	{
-		detectKeypointsOrb(keypoints, img);
+		detector = CreateOrb<cv::FeatureDetector>();
 	}
 	else if (detectorType.compare("AKAZE") == 0)
 	{
-		detectKeypointsAkaze(keypoints, img);
+		detector = CreateAkaze<cv::FeatureDetector>();
 	}
 	else if (detectorType.compare("SIFT") == 0)
 	{
-		detectKeypointsSift(keypoints, img);
+		detector = CreateSift<cv::FeatureDetector>();
 	}
 	else {
 		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
+		return;
 	}
+
+	double t = (double)cv::getTickCount();
+
+	detector->detect(img, keypoints);
 
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 	cout << detectorType << " detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
