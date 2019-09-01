@@ -74,6 +74,10 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 
 		extractor = cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
 	}
+	if (descriptorType.compare("AKAZE") == 0)
+	{
+		extractor = cv::AKAZE::create(); 
+	}
 	else
     {
 	}
