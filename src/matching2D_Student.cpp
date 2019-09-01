@@ -191,6 +191,24 @@ void detectKeypointsBrisk(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
 	detector->detect(img, keypoints);
 }
 
+void detectKeypointsOrb(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
+{
+	// Parameters from Learning OpenCV 3.0
+	auto nFeatures = 500;
+	auto scaleFactor = 1.2f;
+	auto nLevels = 8;
+	auto edgeThresshold = 31;
+	auto firstEdge = 0; // Always 20
+	auto kta_k = 2;
+	auto scoreType = cv::ORB::FAST_SCORE;
+	auto pathSize = 31;
+	auto fastThresshold = 20;
+
+	auto detector = cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
+
+	detector->detect(img, keypoints);
+}
+
 void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
 {
 	double t = (double)cv::getTickCount();
@@ -202,6 +220,10 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 	else if (detectorType.compare("BRISK") == 0)
 	{
 		detectKeypointsBrisk(keypoints, img);
+	}
+	else if (detectorType.compare("ORB") == 0)
+	{
+		detectKeypointsOrb(keypoints, img);
 	}
 	else {
 		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
