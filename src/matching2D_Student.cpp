@@ -71,6 +71,16 @@ cv::Ptr<T> CreateFreak()
 	return cv::xfeatures2d::FREAK::create(orientationNormalized, scaleNormalized, patternScale, nOctaves);
 }
 
+template<typename T>
+cv::Ptr<T> CreateBrief()
+{
+	// Parameters from Learning OpenCV 3.0
+	auto bytes = 32;
+	auto useOrientation = false;
+
+	return cv::xfeatures2d::BriefDescriptorExtractor::create(bytes, useOrientation);
+}
+
 // Find best matches for keypoints in two camera images based on several matching methods
 void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource, cv::Mat &descRef,
                       std::vector<cv::DMatch> &matches, std::string descriptorType, std::string matcherType, std::string selectorType)
@@ -86,8 +96,15 @@ void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::Key
     }
     else if (matcherType.compare("MAT_FLANN") == 0)
     {
-        // ...
-    }
+		if (descSource.type() != CV_32F)
+		{
+			// OpenCV bug workaround : convert binary descriptors to floating point due to a bug in current OpenCV implementation
+			descSource.convertTo(descSource, CV_32F);
+			descRef.convertTo(descRef, CV_32F);
+		}
+
+		matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
+	}
 
     // perform matching task
     if (selectorType.compare("SEL_NN") == 0)
@@ -107,25 +124,25 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 {
     // select appropriate descriptor
     cv::Ptr<cv::DescriptorExtractor> extractor;
-    if (descriptorType.compare("BRISK") == 0)
+    if (descriptorType.compare("BRIEF") == 0)
     {
-		extractor = CreateBrisk<cv::DescriptorExtractor>();
+		extractor = CreateBrief<cv::DescriptorExtractor>();
     }
-	if (descriptorType.compare("ORB") == 0)
+	else if (descriptorType.compare("ORB") == 0)
 	{
 		extractor = CreateOrb<cv::DescriptorExtractor>();
 	}
-	if (descriptorType.compare("FREAK") == 0)
+	else if (descriptorType.compare("FREAK") == 0)
 	{
 		extractor = CreateFreak<cv::DescriptorExtractor>();
 	}
-	if (descriptorType.compare("AKAZE") == 0)
+	else if (descriptorType.compare("AKAZE") == 0)
 	{
 		extractor = CreateAkaze<cv::DescriptorExtractor>();
 	}
-	if (descriptorType.compare("SIFT") == 0)
+	else if (descriptorType.compare("SIFT") == 0)
 	{
-		extractor = CreateSift<cv::DescriptorExtractor>();
+		extractor = CreateSift<cv::DescriptorExtractor>();	
 	}
 	else
     {
