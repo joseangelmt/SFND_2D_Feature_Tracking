@@ -48,11 +48,24 @@ void descKeypoints(vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descr
 
         extractor = cv::BRISK::create(threshold, octaves, patternScale);
     }
-    else
-    {
+	if (descriptorType.compare("ORB") == 0)
+	{
+		// Parameters from Learning OpenCV 3.0
+		auto nFeatures = 500;
+		auto scaleFactor = 1.2f;
+		auto nLevels = 8;
+		auto edgeThresshold = 31;
+		auto firstEdge = 0; // Always 20
+		auto kta_k = 2;
+		auto scoreType = cv::ORB::FAST_SCORE;
+		auto pathSize = 31;
+		auto fastThresshold = 20;
 
-        //...
-    }
+		extractor = cv::ORB::create(nFeatures, scaleFactor, nLevels, edgeThresshold, firstEdge, kta_k, scoreType, pathSize, fastThresshold);
+	}
+	else
+    {
+	}
 
     // perform feature description
     double t = (double)cv::getTickCount();
