@@ -169,3 +169,40 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 		cv::waitKey(0);
 	}
 }
+
+void detectKeypointsFast(vector<cv::KeyPoint>& keypoints, cv::Mat& img)
+{
+	auto thresshold = 30;
+	auto nonmaxSupression = true;
+	auto type = cv::FastFeatureDetector::TYPE_9_16;
+
+	auto detector = cv::FastFeatureDetector::create(thresshold, nonmaxSupression, type);
+	detector->detect(img, keypoints);
+}
+
+void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
+{
+	double t = (double)cv::getTickCount();
+
+	if (detectorType.compare("FAST") == 0)
+	{
+		detectKeypointsFast(keypoints, img);
+	}
+	else {
+		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
+	}
+
+	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
+	cout << detectorType << " detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
+
+	// visualize results
+	if (bVis)
+	{
+		cv::Mat visImage = img.clone();
+		cv::drawKeypoints(img, keypoints, visImage, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+		string windowName = detectorType + " Detector Results";
+		cv::namedWindow(windowName, 6);
+		imshow(windowName, visImage);
+		cv::waitKey(0);
+	}
+}
