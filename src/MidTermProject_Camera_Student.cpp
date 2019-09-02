@@ -6,7 +6,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
-#include <map>
+#include <iomanip>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -20,66 +20,42 @@
 using namespace std;
 
 /* MAIN PROGRAM */
-int main(int argc, const char *argv[])
+int main(int argc, const char* argv[])
 {
+	/* INIT VARIABLES AND DATA STRUCTURES */
 
-    /* INIT VARIABLES AND DATA STRUCTURES */
+	// data location
+	string dataPath = "../../../";
 
-    // data location
-    string dataPath = "../../../";
+	// camera
+	string imgBasePath = dataPath + "images/";
+	string imgPrefix = "KITTI/2011_09_26/image_00/data/000000"; // left camera, color
+	string imgFileType = ".png";
+	int imgStartIndex = 0; // first file index to load (assumes Lidar and camera names have identical naming convention)
+	int imgEndIndex = 9;   // last file index to load
+	int imgFillWidth = 4;  // no. of digits which make up the file index (e.g. img-0001.png)
 
-    // camera
-    string imgBasePath = dataPath + "images/";
-    string imgPrefix = "KITTI/2011_09_26/image_00/data/000000"; // left camera, color
-    string imgFileType = ".png";
-    int imgStartIndex = 0; // first file index to load (assumes Lidar and camera names have identical naming convention)
-    int imgEndIndex = 9;   // last file index to load
-    int imgFillWidth = 4;  // no. of digits which make up the file index (e.g. img-0001.png)
+	// misc
+	int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
+	vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
+	bool bVis = false;            // visualize results
 
-    // misc
-    int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
-    vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
-    bool bVis = false;            // visualize results
+	/* MAIN LOOP OVER ALL IMAGES */
 
-    /* MAIN LOOP OVER ALL IMAGES */
-
-#ifdef PERFORMANCE_EVALUATION_1
-	size_t totalKeypoints = 0;
-#endif
-
-#if defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
-	vector<string> detectorTypes{
-		"SHITOMASI",
-		"HARRIS",
-		"FAST",
-		"BRISK",
-		"ORB", 
-		"AKAZE",
-		"SIFT"
-	};
-
-	vector<string> descriptorTypes{
-		"BRIEF", 
-		"ORB",
-		"FREAK",
-		"AKAZE",
-		"SIFT"
-	};
+#ifdef ITERATE_ALL_DETECTORS
+	DataType values;
 
 	for (auto detectorType : detectorTypes) {
-		cout << detectorType;
+#ifdef PRINT_NUMBER_OF_KEYPOINTS
+		values[detectorType].resize(imgEndIndex - imgStartIndex + 1);
+#endif
 
+#endif
+#ifdef ITERATE_ALL_DESCRIPTORS
 		for (auto descriptorType : descriptorTypes) {
+			values[detectorType][descriptorType].resize(imgEndIndex - imgStartIndex + 1);
 
-			cout << "|";
 			dataBuffer.clear();
-
-#ifdef PERFORMANCE_EVALUATION_2
-			size_t totalMatches = 0;
-#endif
-#ifdef PERFORMANCE_EVALUATION_3
-			double t = (double)cv::getTickCount();
-#endif
 
 			// As you can see here, https://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#akaze,
 			// AKAZE descriptors can only be used with KAZE or AKAZE keypoints
@@ -118,16 +94,16 @@ int main(int argc, const char *argv[])
 				dataBuffer.push_back(frame);
 
 				//// EOF STUDENT ASSIGNMENT
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
 				cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
-#endif
+
+				double timeKeypoints;
 
 				/* DETECT IMAGE KEYPOINTS */
 
 				// extract 2D keypoints from current image
 				vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
-				string detectorType = "ORB";
+#ifndef ITERATE_ALL_DETECTORS
+				string detectorType = "SIFT";
 #endif
 
 				//// STUDENT ASSIGNMENT
@@ -136,17 +112,18 @@ int main(int argc, const char *argv[])
 
 				if (detectorType.compare("SHITOMASI") == 0)
 				{
-					detKeypointsShiTomasi(keypoints, imgGray, false);
+					timeKeypoints = detKeypointsShiTomasi(keypoints, imgGray, false);
 				}
 				else if (detectorType.compare("HARRIS") == 0)
 				{
-					detKeypointsHarris(keypoints, imgGray, false);
+					timeKeypoints = detKeypointsHarris(keypoints, imgGray, false);
 				}
 				else
 				{
-					detKeypointsModern(keypoints, imgGray, detectorType, false);
+					timeKeypoints = detKeypointsModern(keypoints, imgGray, detectorType, false);
 				}
 				//// EOF STUDENT ASSIGNMENT
+
 
 				//// STUDENT ASSIGNMENT
 				//// TASK MP.3 -> only keep keypoints on the preceding vehicle
@@ -162,12 +139,11 @@ int main(int argc, const char *argv[])
 							keypointsInVehicle.push_back(keyPoint);
 
 					keypoints = keypointsInVehicle;
-
-#ifdef PERFORMANCE_EVALUATION_1
-					cout << keypoints.size() << " keypoints in the preceding vehicle" << endl;
-					totalKeypoints += keypoints.size();
-#endif
 				}
+
+#ifdef PRINT_NUMBER_OF_KEYPOINTS
+				values[detectorType][imgIndex] = keypoints.size();
+#endif
 
 				//// EOF STUDENT ASSIGNMENT
 
@@ -187,9 +163,7 @@ int main(int argc, const char *argv[])
 
 				// push keypoints and descriptor for current frame to end of data buffer
 				(dataBuffer.end() - 1)->keypoints = keypoints;
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
 				cout << "#2 : DETECT KEYPOINTS done" << endl;
-#endif
 
 				/* EXTRACT KEYPOINT DESCRIPTORS */
 
@@ -198,20 +172,21 @@ int main(int argc, const char *argv[])
 				//// -> BRIEF, ORB, FREAK, AKAZE, SIFT
 
 				cv::Mat descriptors;
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef ITERATE_ALL_DESCRIPTORS
 				string descriptorType = "BRIEF"; // BRIEF, ORB, FREAK, AKAZE, SIFT
 #endif
-#ifndef PERFORMANCE_EVALUATION_1
-				descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
+				auto timeDescriptorExtractor = descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
+
+#ifdef PRINT_TIME_DETECTION_EXTRACTION
+				values[detectorType][descriptorType][imgIndex] = make_tuple(1000 * timeKeypoints, 100 * timeDescriptorExtractor);
 #endif
+
 				//// EOF STUDENT ASSIGNMENT
 
 				// push descriptors for current frame to end of data buffer
 				(dataBuffer.end() - 1)->descriptors = descriptors;
 
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
 				cout << "#3 : EXTRACT DESCRIPTORS done" << endl;
-#endif
 
 				if (dataBuffer.size() > 1) // wait until at least two images have been processed
 				{
@@ -220,11 +195,7 @@ int main(int argc, const char *argv[])
 
 					vector<cv::DMatch> matches;
 					string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
-#if defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
 					string _descriptorType = 0 == descriptorType.compare("SIFT") ? "DES_HOG" : "DES_BINARY";
-#else
-					string _descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
-#endif
 					string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
 					//// STUDENT ASSIGNMENT
@@ -240,18 +211,14 @@ int main(int argc, const char *argv[])
 					// store matches in current data frame
 					(dataBuffer.end() - 1)->kptMatches = matches;
 
-#ifdef PERFORMANCE_EVALUATION_2
-					totalMatches += matches.size();
-//					cout << matches.size() << ",";
-#elif defined(PERFORMANCE_EVALUATION_3)
-#else
-					cout << "#4 : MATCH KEYPOINT DESCRIPTORS done" << endl;
+#ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+					values[detectorType][descriptorType][imgIndex] = matches.size();
 #endif
+					cout << "#4 : MATCH KEYPOINT DESCRIPTORS done" << endl;
 
 					// visualize matches between current and previous image
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifdef SHOW_IMAGES
 					bVis = true;
-#endif
 					if (bVis)
 					{
 						cv::Mat matchImg = ((dataBuffer.end() - 1)->cameraImg).clone();
@@ -274,26 +241,96 @@ int main(int argc, const char *argv[])
 						cv::waitKey(0); // wait for key to be pressed
 					}
 					bVis = false;
+#endif
 				}
-
 			} // eof loop over all images
-#if defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
-
-#ifdef PERFORMANCE_EVALUATION_2
-			cout << "_" << totalMatches << "_";
-#endif
-#ifdef PERFORMANCE_EVALUATION_3
-			t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-			cout << t;
-#endif
-		}
-		cout << endl;
+#ifdef ITERATE_ALL_DESCRIPTORS
 		}
 #endif
+#ifdef ITERATE_ALL_DETECTORS
+	}
 
-#ifdef PERFORMANCE_EVALUATION_1
-	cout << "Total number of keypoints: " << totalKeypoints << endl;
+#ifdef PRINT_NUMBER_OF_KEYPOINTS
+	for (auto detectorType : detectorTypes) {
+		cout << "__" << detectorType << "__" << endl;
+
+		cout << "|Image|Keypoints|" << endl;
+		cout << "|---|---|" << endl;
+
+		for (auto i = 0; i < values[detectorType].size(); i++) 
+			cout << "|" << 1 + i << "|" << values[detectorType][i] << "|" << endl;
+	}
 #endif
 
-    return 0;
+#ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+	cout << "<table>";
+	cout << "<tr>";
+	cout << "<th colspan=\"2\">Keypoint detector/Descriptor</th>";
+
+	for (auto descriptorType : descriptorTypes) 
+		cout << "<th>" << descriptorType << "</th>";
+	cout << "</tr>";
+
+	for (auto detectorType : detectorTypes) {
+		cout << "<tr><td rowspan=\"" << imgEndIndex - imgStartIndex + 2 << "\">" << detectorType << "</td></tr>";
+
+		for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
+		{
+			cout << "<tr>";
+			cout << "<td>" << 1 + imgIndex << "</td>";
+
+			for (auto descriptorType : descriptorTypes) {
+				cout << "<td>";
+
+				auto value = values[detectorType][descriptorType][imgIndex];
+
+				if( value )
+					cout << value;
+
+				cout << "</td>";
+			}
+			cout << "</tr>";
+		}
+	}
+	cout << "</table>";
+#endif
+
+#ifdef PRINT_TIME_DETECTION_EXTRACTION
+	cout << fixed;
+	cout << "<table>";
+	cout << "<tr>";
+	cout << "<th colspan=\"2\">Keypoint detector/Descriptor</th>";
+
+	for (auto descriptorType : descriptorTypes)
+		cout << "<th>" << descriptorType << "</th>";
+	cout << "</tr>";
+
+	for (auto detectorType : detectorTypes) {
+		cout << "<tr><td rowspan=\"" << imgEndIndex - imgStartIndex + 2 << "\">" << detectorType << "</td></tr>";
+
+		for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
+		{
+			cout << "<tr>";
+			cout << "<td>" << 1 + imgIndex << "</td>";
+
+			for (auto descriptorType : descriptorTypes) {
+				auto timeKeypoint = get<0>(values[detectorType][descriptorType][imgIndex]);
+				auto timeDescriptor = get<1>(values[detectorType][descriptorType][imgIndex]);
+
+				cout << "<td>";
+
+				if (0 != timeKeypoint || 0 != timeDescriptor)
+					cout << setprecision(1) << get<0>(values[detectorType][descriptorType][imgIndex]) << "+" << setprecision(1) << get<1>(values[detectorType][descriptorType][imgIndex]) << "=" << setprecision(1) << get<0>(values[detectorType][descriptorType][imgIndex]) + get<1>(values[detectorType][descriptorType][imgIndex]);
+				
+				cout << "</td>";
+			}
+			cout << "</tr>";
+		}
+	}
+	cout << "</table>";
+#endif
+
+#endif
+
+	return 0;
 }

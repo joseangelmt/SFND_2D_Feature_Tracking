@@ -15,7 +15,7 @@ cv::Ptr<cv::Feature2D> CreateFast()
 cv::Ptr<cv::Feature2D> CreateBrisk()
 {
 	// Parameters from Learning OpenCV 3.0
-	auto thresshold = 30;
+	auto thresshold = 60;
 	auto octaves = 3;
 	auto patternScale = 1.0f;
 
@@ -119,7 +119,7 @@ void matchDescriptors(std::vector<cv::KeyPoint>& kPtsSource, std::vector<cv::Key
 }
 
 // Use one of several types of state-of-art descriptors to uniquely identify keypoints
-void descKeypoints(vector<cv::KeyPoint>& keypoints, cv::Mat& img, cv::Mat& descriptors, string descriptorType)
+double descKeypoints(vector<cv::KeyPoint>& keypoints, cv::Mat& img, cv::Mat& descriptors, string descriptorType)
 {
 	// select appropriate descriptor
 	cv::Ptr<cv::DescriptorExtractor> extractor;
@@ -145,8 +145,7 @@ void descKeypoints(vector<cv::KeyPoint>& keypoints, cv::Mat& img, cv::Mat& descr
 	}
 	else
 	{
-		cerr << "NOT IMPLEMENTED DETECTOR " << descriptorType << endl;
-		return;
+		throw exception();
 	}
 
 	// perform feature description
@@ -154,13 +153,15 @@ void descKeypoints(vector<cv::KeyPoint>& keypoints, cv::Mat& img, cv::Mat& descr
 	extractor->compute(img, keypoints, descriptors);
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef PRINTING_PERFORMANCE
 	cout << descriptorType << " descriptor extraction in " << 1000 * t / 1.0 << " ms" << endl;
 #endif
+
+	return t;
 }
 
 // Detect keypoints in image using the traditional Shi-Thomasi detector
-void detKeypointsShiTomasi(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis)
+double detKeypointsShiTomasi(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis)
 {
 	// compute detector parameters based on image size
 	int blockSize = 4;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
@@ -187,7 +188,7 @@ void detKeypointsShiTomasi(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool b
 	}
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef PRINTING_PERFORMANCE
 	cout << "Shi-Tomasi detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
 #endif
 
@@ -201,9 +202,11 @@ void detKeypointsShiTomasi(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool b
 		imshow(windowName, visImage);
 		cv::waitKey(0);
 	}
+
+	return t;
 }
 
-void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis)
+double detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis)
 {
 	// compute detector parameters based on image size
 	int blockSize = 2;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
@@ -258,7 +261,7 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef PRINTING_PERFORMANCE
 	cout << "HARRIS detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
 #endif
 
@@ -272,11 +275,11 @@ void detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bVis
 		imshow(windowName, visImage);
 		cv::waitKey(0);
 	}
+
+	return t;
 }
 
-
-
-void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
+double detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std::string detectorType, bool bVis)
 {
 	cv::Ptr<cv::FeatureDetector> detector;
 
@@ -301,8 +304,7 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 		detector = CreateSift();
 	}
 	else {
-		cerr << "NOT IMPLEMENTED DETECTOR " << detectorType << endl;
-		return;
+		throw exception();
 	}
 
 	double t = (double)cv::getTickCount();
@@ -310,7 +312,7 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 	detector->detect(img, keypoints);
 
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-#if !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef PRINTING_PERFORMANCE
 	cout << detectorType << " detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
 #endif
 
@@ -324,4 +326,6 @@ void detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, std:
 		imshow(windowName, visImage);
 		cv::waitKey(0);
 	}
+
+	return t;
 }

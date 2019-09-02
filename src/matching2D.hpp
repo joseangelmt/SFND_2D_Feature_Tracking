@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <map>
 #include <cmath>
 #include <limits>
 
@@ -19,13 +20,61 @@
 #include "dataStructures.h"
 
 //#define PERFORMANCE_EVALUATION_1
-//#define PERFORMANCE_EVALUATION_2
-#define PERFORMANCE_EVALUATION_3
+#define PERFORMANCE_EVALUATION_2
+//#define PERFORMANCE_EVALUATION_3
 
-void detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
-void detKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
-void detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, std::string detectorType, bool bVis=false);
-void descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, std::string descriptorType);
+#ifdef PERFORMANCE_EVALUATION_1
+#define PRINT_NUMBER_OF_KEYPOINTS
+using DataType = std::map<std::string, std::vector<std::size_t>>;
+#endif
+
+#ifdef PERFORMANCE_EVALUATION_2
+#define PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+using DataType = std::map<std::string, std::map<std::string,std::vector<std::size_t>>>;
+#endif
+
+#ifdef PERFORMANCE_EVALUATION_3
+#define PRINT_TIME_DETECTION_EXTRACTION
+using DataType = std::map<std::string, std::map<std::string, std::vector<std::tuple<double, double>>>>;
+#endif
+
+#if defined(PERFORMANCE_EVALUATION_1) || defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
+#define ITERATE_ALL_DETECTORS
+
+static std::vector<std::string> detectorTypes{
+	"SHITOMASI",
+	"HARRIS",
+	"FAST",
+	"BRISK",
+	"ORB",
+	"AKAZE",
+	"SIFT"
+};
+
+#endif
+
+#if defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
+#define ITERATE_ALL_DESCRIPTORS
+
+static std::vector<std::string> descriptorTypes{
+	"BRIEF",
+	"ORB",
+	"FREAK",
+	"AKAZE",
+	"SIFT"
+};
+
+#endif
+
+#if !defined(PERFORMANCE_EVALUATION_1) && !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#define SHOW_IMAGES
+#endif
+
+
+double detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
+double detKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
+double detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, std::string detectorType, bool bVis=false);
+double descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, std::string descriptorType);
 void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource, cv::Mat &descRef,
                       std::vector<cv::DMatch> &matches, std::string descriptorType, std::string matcherType, std::string selectorType);
 
