@@ -18,6 +18,9 @@
 
 #include "dataStructures.h"
 
+//#define PERFORMANCE_EVALUATION_1
+//#define PERFORMANCE_EVALUATION_2
+#define PERFORMANCE_EVALUATION_3
 
 void detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
 void detKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
