@@ -19,28 +19,30 @@
 
 #include "dataStructures.h"
 
-//#define PERFORMANCE_EVALUATION_1
-#define PERFORMANCE_EVALUATION_2
-//#define PERFORMANCE_EVALUATION_3
+#define PERFORMANCE_EVALUATION
 
-#ifdef PERFORMANCE_EVALUATION_1
+
+#ifdef PERFORMANCE_EVALUATION
 #define PRINT_NUMBER_OF_KEYPOINTS
-using DataType = std::map<std::string, std::vector<std::size_t>>;
-#endif
-
-#ifdef PERFORMANCE_EVALUATION_2
 #define PRINT_NUMBER_OF_MATCHED_KEYPOINTS
-using DataType = std::map<std::string, std::map<std::string,std::vector<std::size_t>>>;
-#endif
-
-#ifdef PERFORMANCE_EVALUATION_3
 #define PRINT_TIME_DETECTION_EXTRACTION
-using DataType = std::map<std::string, std::map<std::string, std::vector<std::tuple<double, double>>>>;
+#define ITERATE_ALL_DETECTORS
+#define ITERATE_ALL_DESCRIPTORS
 #endif
 
-#if defined(PERFORMANCE_EVALUATION_1) || defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
-#define ITERATE_ALL_DETECTORS
+#ifdef PRINT_NUMBER_OF_KEYPOINTS
+using NumberOfKeypoints = std::map<std::string, std::vector<std::size_t>>;
+#endif
 
+#ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+using MatchedPoints = std::map<std::string, std::map<std::string, std::vector<std::size_t>>>;
+#endif
+
+#ifdef PRINT_TIME_DETECTION_EXTRACTION
+using Timers = std::map<std::string, std::map<std::string, std::vector<std::tuple<double, double>>>>;
+#endif
+
+#ifdef ITERATE_ALL_DETECTORS
 static std::vector<std::string> detectorTypes{
 	"SHITOMASI",
 	"HARRIS",
@@ -50,12 +52,9 @@ static std::vector<std::string> detectorTypes{
 	"AKAZE",
 	"SIFT"
 };
-
 #endif
 
-#if defined(PERFORMANCE_EVALUATION_2) || defined(PERFORMANCE_EVALUATION_3)
-#define ITERATE_ALL_DESCRIPTORS
-
+#ifdef ITERATE_ALL_DESCRIPTORS
 static std::vector<std::string> descriptorTypes{
 	"BRIEF",
 	"ORB",
@@ -63,13 +62,11 @@ static std::vector<std::string> descriptorTypes{
 	"AKAZE",
 	"SIFT"
 };
-
 #endif
 
-#if !defined(PERFORMANCE_EVALUATION_1) && !defined(PERFORMANCE_EVALUATION_2) && !defined(PERFORMANCE_EVALUATION_3)
+#ifndef PERFORMANCE_EVALUATION
 #define SHOW_IMAGES
 #endif
-
 
 double detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);
 double detKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis=false);

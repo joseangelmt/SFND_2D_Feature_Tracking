@@ -42,19 +42,31 @@ int main(int argc, const char* argv[])
 
 	/* MAIN LOOP OVER ALL IMAGES */
 
-#ifdef ITERATE_ALL_DETECTORS
-	DataType values;
+#ifdef PRINT_NUMBER_OF_KEYPOINTS
+	NumberOfKeypoints numberOfKeypoints;
+#endif
+#ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+	MatchedPoints matchedPoints;
+#endif
+#ifdef PRINT_TIME_DETECTION_EXTRACTION
+	Timers timers;
+#endif
 
+#ifdef ITERATE_ALL_DETECTORS
 	for (auto detectorType : detectorTypes) {
 #ifdef PRINT_NUMBER_OF_KEYPOINTS
-		values[detectorType].resize(imgEndIndex - imgStartIndex + 1);
+		numberOfKeypoints[detectorType].resize(imgEndIndex - imgStartIndex + 1);
 #endif
 
 #endif
 #ifdef ITERATE_ALL_DESCRIPTORS
 		for (auto descriptorType : descriptorTypes) {
-			values[detectorType][descriptorType].resize(imgEndIndex - imgStartIndex + 1);
-
+#ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
+			matchedPoints[detectorType][descriptorType].resize(imgEndIndex - imgStartIndex + 1);
+#endif
+#ifdef PRINT_TIME_DETECTION_EXTRACTION
+			timers[detectorType][descriptorType].resize(imgEndIndex - imgStartIndex + 1);
+#endif
 			dataBuffer.clear();
 
 			// As you can see here, https://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#akaze,
@@ -142,7 +154,7 @@ int main(int argc, const char* argv[])
 				}
 
 #ifdef PRINT_NUMBER_OF_KEYPOINTS
-				values[detectorType][imgIndex] = keypoints.size();
+				numberOfKeypoints[detectorType][imgIndex] = keypoints.size();
 #endif
 
 				//// EOF STUDENT ASSIGNMENT
@@ -173,12 +185,12 @@ int main(int argc, const char* argv[])
 
 				cv::Mat descriptors;
 #ifndef ITERATE_ALL_DESCRIPTORS
-				string descriptorType = "BRIEF"; // BRIEF, ORB, FREAK, AKAZE, SIFT
+				string descriptorType = "SIFT"; // BRIEF, ORB, FREAK, AKAZE, SIFT
 #endif
 				auto timeDescriptorExtractor = descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
 
 #ifdef PRINT_TIME_DETECTION_EXTRACTION
-				values[detectorType][descriptorType][imgIndex] = make_tuple(1000 * timeKeypoints, 100 * timeDescriptorExtractor);
+				timers[detectorType][descriptorType][imgIndex] = make_tuple(1000 * timeKeypoints, 100 * timeDescriptorExtractor);
 #endif
 
 				//// EOF STUDENT ASSIGNMENT
@@ -212,7 +224,7 @@ int main(int argc, const char* argv[])
 					(dataBuffer.end() - 1)->kptMatches = matches;
 
 #ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
-					values[detectorType][descriptorType][imgIndex] = matches.size();
+					matchedPoints[detectorType][descriptorType][imgIndex - 1] = matches.size();
 #endif
 					cout << "#4 : MATCH KEYPOINT DESCRIPTORS done" << endl;
 
@@ -257,24 +269,26 @@ int main(int argc, const char* argv[])
 		cout << "|Image|Keypoints|" << endl;
 		cout << "|---|---|" << endl;
 
-		for (auto i = 0; i < values[detectorType].size(); i++) 
-			cout << "|" << 1 + i << "|" << values[detectorType][i] << "|" << endl;
+		for (auto i = 0; i < numberOfKeypoints[detectorType].size(); i++)
+			cout << "|" << 1 + i << "|" << numberOfKeypoints[detectorType][i] << "|" << endl;
 	}
 #endif
 
 #ifdef PRINT_NUMBER_OF_MATCHED_KEYPOINTS
 	cout << "<table>";
 	cout << "<tr>";
-	cout << "<th colspan=\"2\">Keypoint detector/Descriptor</th>";
+	cout << "<th></th><th>Image</th>";
 
-	for (auto descriptorType : descriptorTypes) 
+	for (auto descriptorType : descriptorTypes)
 		cout << "<th>" << descriptorType << "</th>";
 	cout << "</tr>";
+
+	map<string, map<string, size_t>> totalMatches;
 
 	for (auto detectorType : detectorTypes) {
 		cout << "<tr><td rowspan=\"" << imgEndIndex - imgStartIndex + 2 << "\">" << detectorType << "</td></tr>";
 
-		for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
+		for (size_t imgIndex = 0; imgIndex < imgEndIndex - imgStartIndex; imgIndex++)
 		{
 			cout << "<tr>";
 			cout << "<td>" << 1 + imgIndex << "</td>";
@@ -282,31 +296,49 @@ int main(int argc, const char* argv[])
 			for (auto descriptorType : descriptorTypes) {
 				cout << "<td>";
 
-				auto value = values[detectorType][descriptorType][imgIndex];
+				auto value = matchedPoints[detectorType][descriptorType][imgIndex];
+				totalMatches[detectorType][descriptorType] += value;
 
-				if( value )
+				if (value)
 					cout << value;
 
 				cout << "</td>";
 			}
 			cout << "</tr>";
 		}
+
+		cout << "<tr>";
+		cout << "<td><strong>Total</strong></td>";
+
+		for (auto descriptorType : descriptorTypes) {
+			cout << "<td><strong>";
+
+			size_t total = totalMatches[detectorType][descriptorType];
+
+			if (total)
+				cout << total;
+
+			cout << "</strong></td>";
+		}
+		cout << "</tr>";
 	}
-	cout << "</table>";
+	cout << "</table>" << endl << endl;
 #endif
 
 #ifdef PRINT_TIME_DETECTION_EXTRACTION
 	cout << fixed;
 	cout << "<table>";
 	cout << "<tr>";
-	cout << "<th colspan=\"2\">Keypoint detector/Descriptor</th>";
+	cout << "<th></th><th>Image</th>";
 
 	for (auto descriptorType : descriptorTypes)
 		cout << "<th>" << descriptorType << "</th>";
 	cout << "</tr>";
 
+	map<string, map<string, double>> totalTimes;
+
 	for (auto detectorType : detectorTypes) {
-		cout << "<tr><td rowspan=\"" << imgEndIndex - imgStartIndex + 2 << "\">" << detectorType << "</td></tr>";
+		cout << "<tr><td rowspan=\"" << imgEndIndex - imgStartIndex + 3 << "\">" << detectorType << "</td></tr>";
 
 		for (size_t imgIndex = 0; imgIndex <= imgEndIndex - imgStartIndex; imgIndex++)
 		{
@@ -314,22 +346,66 @@ int main(int argc, const char* argv[])
 			cout << "<td>" << 1 + imgIndex << "</td>";
 
 			for (auto descriptorType : descriptorTypes) {
-				auto timeKeypoint = get<0>(values[detectorType][descriptorType][imgIndex]);
-				auto timeDescriptor = get<1>(values[detectorType][descriptorType][imgIndex]);
+				auto timeKeypoint = get<0>(timers[detectorType][descriptorType][imgIndex]);
+				auto timeDescriptor = get<1>(timers[detectorType][descriptorType][imgIndex]);
+				totalTimes[detectorType][descriptorType] += timeKeypoint + timeDescriptor;
 
 				cout << "<td>";
 
 				if (0 != timeKeypoint || 0 != timeDescriptor)
-					cout << setprecision(1) << get<0>(values[detectorType][descriptorType][imgIndex]) << "+" << setprecision(1) << get<1>(values[detectorType][descriptorType][imgIndex]) << "=" << setprecision(1) << get<0>(values[detectorType][descriptorType][imgIndex]) + get<1>(values[detectorType][descriptorType][imgIndex]);
-				
+					cout << setprecision(1) << get<0>(timers[detectorType][descriptorType][imgIndex]) << "+" << setprecision(1) << get<1>(timers[detectorType][descriptorType][imgIndex]);
+
 				cout << "</td>";
 			}
 			cout << "</tr>";
 		}
+
+		cout << "<tr>";
+		cout << "<td><strong>Total</strong></td>";
+
+		for (auto descriptorType : descriptorTypes) {
+			cout << "<td><strong>";
+
+			if (0 != totalTimes[detectorType][descriptorType])
+				cout << setprecision(1) << totalTimes[detectorType][descriptorType];
+
+			cout << "</td></strong>";
+		}
+		cout << "</tr>";
+
 	}
-	cout << "</table>";
+	cout << "</table>" << endl << endl;
 #endif
 
+#if defined(PRINT_NUMBER_OF_MATCHED_KEYPOINTS) && defined(PRINT_TIME_DETECTION_EXTRACTION)
+	// Print performance (number of matches per milisecond)
+	cout << "<table>";
+	cout << "<tr>";
+	cout << "<th></th>";
+
+	for (auto descriptorType : descriptorTypes)
+		cout << "<th>" << descriptorType << "</th>";
+	cout << "</tr>";
+
+	for (auto detectorType : detectorTypes) {
+		cout << "<tr><td>" << detectorType << "</td>";
+
+		for (auto descriptorType : descriptorTypes) {
+			cout << "<td>";
+
+			auto matches = totalMatches[detectorType][descriptorType];
+			auto time = totalTimes[detectorType][descriptorType];
+
+			if (time != 0)
+				cout << setprecision(1) << matches / time;
+
+			cout << "</td>";
+		}
+
+		cout << "</tr>";
+	}
+	cout << "</table>" << endl << endl;
+#endif
 #endif
 
 	return 0;

@@ -153,9 +153,7 @@ double descKeypoints(vector<cv::KeyPoint>& keypoints, cv::Mat& img, cv::Mat& des
 	extractor->compute(img, keypoints, descriptors);
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#ifndef PRINTING_PERFORMANCE
 	cout << descriptorType << " descriptor extraction in " << 1000 * t / 1.0 << " ms" << endl;
-#endif
 
 	return t;
 }
@@ -188,9 +186,7 @@ double detKeypointsShiTomasi(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool
 	}
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#ifndef PRINTING_PERFORMANCE
 	cout << "Shi-Tomasi detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-#endif
 
 	// visualize results
 	if (bVis)
@@ -261,9 +257,7 @@ double detKeypointsHarris(vector<cv::KeyPoint>& keypoints, cv::Mat& img, bool bV
 
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
 
-#ifndef PRINTING_PERFORMANCE
 	cout << "HARRIS detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-#endif
 
 	// visualize results
 	if (bVis)
@@ -312,9 +306,7 @@ double detKeypointsModern(std::vector<cv::KeyPoint>& keypoints, cv::Mat& img, st
 	detector->detect(img, keypoints);
 
 	t = ((double)cv::getTickCount() - t) / cv::getTickFrequency();
-#ifndef PRINTING_PERFORMANCE
 	cout << detectorType << " detection with n=" << keypoints.size() << " keypoints in " << 1000 * t / 1.0 << " ms" << endl;
-#endif
 
 	// visualize results
 	if (bVis)
